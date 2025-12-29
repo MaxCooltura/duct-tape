@@ -1,0 +1,15 @@
+{
+    "version": "0.2",
+    "language": "en,pl",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [
+        "pl"
+    ],
+    "words": [
+        "duct",
+        "wojtis"
+    ],
+    "ignoreWords": [],
+    "import": []
+}

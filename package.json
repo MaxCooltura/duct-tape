@@ -1,0 +1,14 @@
+{
+    "name": "duct-tape",
+    "version": "1.0.0",
+    "description": "",
+    "license": "ISC",
+    "type": "module",
+    "module": "src/index.ts",
+	"contributors": [
+        "Arkadiusz Wojtis"
+	],    
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    }
+}
