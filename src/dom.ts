@@ -61,7 +61,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         }
     }
 
-    attr(name: string, value: string | number | Value<unknown>): DOMNode<T> {
+    attr(name: string, value: string | number | Value<unknown>): this {
         if (value instanceof Value) {
             this.register(
                 value.subscribe((val) => {
@@ -75,8 +75,8 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     }
 
     property(name: string): string | undefined
-    property(name: string, value: string | number | boolean | Value<unknown>): DOMNode<T>
-    property(name: string, value?: string | number | boolean | Value<unknown>): DOMNode<T> | string | undefined {
+    property(name: string, value: string | number | boolean | Value<unknown>): this
+    property(name: string, value?: string | number | boolean | Value<unknown>): this | string | undefined {
         if (value === undefined) {
             return (this._element as any)[name];
         }
@@ -93,7 +93,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         return this;
     }
 
-    style(name: string, value: string | Value<string>): DOMNode<T> {
+    style(name: string, value: string | Value<string>): this {
         if (value instanceof Value) {
             this.register(
                 value.subscribe((val) => {
@@ -106,7 +106,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         return this;
     }
 
-    class(className: string | string[], active: boolean | Value<boolean> = true): DOMNode<T> {
+    class(className: string | string[], active: boolean | Value<boolean> = true): this {
         if (active instanceof Value) {
             this.register(
                 active.subscribe((val) => {
@@ -143,7 +143,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         return this;
     }
 
-    on(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): DOMNode<T> {
+    on(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): this {
         this._element.addEventListener(eventType, listener, options);
         this.register(() => {
             this._element.removeEventListener(eventType, listener, options);
@@ -151,12 +151,12 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         return this;
     }
 
-    off(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): DOMNode<T> {
+    off(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): this {
         this._element.removeEventListener(eventType, listener, options);
         return this;
     }
 
-    text(content: string | Value<string | number>): DOMNode<T> {
+    text(content: string | Value<string | number>): this {
         if (content instanceof Value) {
             const textNode = document.createTextNode("");
             this._element.appendChild(textNode);
@@ -171,19 +171,19 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         return this;
     }
 
-    html(content: string): DOMNode<T> {
+    html(content: string): this {
         this._element.innerHTML = content;
         return this;
     }
 
-    append(...children: DOMNode<any>[]): DOMNode<T> {
+    append(...children: DOMNode<any>[]): this {
         for (const child of children) {
             this._element.appendChild(child.element);
         }
         return this;
     }
 
-    mount(parent: Element | DOMNode<any>): DOMNode<T> {
+    mount(parent: Element | DOMNode<any>): this {
         if (parent instanceof DOMNode) {
             parent._element.appendChild(this._element);
         } else {
