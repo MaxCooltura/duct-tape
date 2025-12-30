@@ -1,0 +1,25 @@
+{
+    "include": [
+        "src"
+    ],
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "declaration": true,
+        "sourceMap": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "outDir": "./build",
+        "rootDirs": [
+            "./src",
+        ],
+        "paths": {
+            "~/*": [
+                "./src/*"
+            ]
+        }
+    }
+}

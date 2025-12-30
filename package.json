@@ -3,12 +3,20 @@
     "version": "1.0.0",
     "description": "",
     "license": "ISC",
-    "type": "module",
-    "module": "src/index.ts",
-	"contributors": [
+    "type": "module",    
+    "module": "build/index.js",
+    "types": "build/index.d.ts",
+    "contributors": [
         "Arkadiusz Wojtis"
-	],    
+    ],
     "scripts": {
+        "build": "webpack --config webpack.config.cjs --env production",
         "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "devDependencies": {
+        "ts-loader": "^9.5.4",
+        "typescript": "^5.9.3",
+        "webpack": "^5.104.1",
+        "webpack-cli": "^6.0.1"
     }
 }
