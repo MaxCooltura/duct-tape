@@ -16,6 +16,7 @@ export declare abstract class Value<T, E extends ValueReaderEvents = ValueReader
     equal(test: ((value: T | undefined) => boolean) | string | boolean | number): Value<boolean>;
     notEqual(test: (value: T | undefined) => boolean | string): Value<boolean>;
     format(formatter: ValueObserverTransform): Value<string>;
+    map<U>(transformerFn: ValueObserverTransform): Value<U>;
     mapBoolean<U>(trueValue: U, falseValue: U): Value<U>;
     not(): Value<boolean>;
     and<U>(other: Value<U>): Value<boolean>;
@@ -31,8 +32,7 @@ export declare class ValueStore<T extends ValueTypes, E extends ValueEvents = Va
     constructor(value: T);
     dispose(): void;
     subscribe(callback: ListenerFn<T>, scope?: object): UnsubscribeFn;
-    set(value: ((value: T, initValue: T) => T) | T extends object ? Record<string, unknown> : T): void;
-    reinitAndSet(value: T extends object ? Record<string, unknown> : T): void;
+    set(value: T): void;
     get(): T;
     toString(): string;
     protected deliveryValue(value: T, prev: T | undefined): void;
@@ -44,7 +44,7 @@ export declare class ValueObserver<K, T extends ValueTypes> extends Value<K> {
     private readonly watch;
     private prev;
     private value;
-    private transform;
+    private _transform;
     constructor(watch: Value<T>, transform: (value: T | undefined) => K);
     subscribe(callback: ListenerFn<K>, scope?: object): UnsubscribeFn;
     get(): K;

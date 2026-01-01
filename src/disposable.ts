@@ -14,6 +14,10 @@ export interface IRemovable {
 
 export type DisposeFn = () => void;
 
+export function createDisposeFn(fn: DisposeFn): DisposeFn {
+    return fn;
+}
+
 export abstract class Disposable implements IDisposable {
     protected _disposed: boolean;
     private _disposables: Map<object, DisposeFn> = new Map();

@@ -1,6 +1,7 @@
 import { UnsubscribeFn } from "./unsubscribe";
 import Emitter from "./emitter";
 import { mergeDeep } from "./common";
+import { toBoolean } from "./to";
 
 export interface ListenerHandle<T> {
     callback: ListenerFn<T>;
@@ -94,14 +95,23 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
         return transformer;
     }
 
+    map<U>(transformerFn: ValueObserverTransform): Value<U> {
+        const transformer = new ValueObserver<U, T>(this, transformerFn);
+        transformer.on("afterUnsubscribe", () => {
+            if (transformer.subscribersLength === 0) {
+                transformer.dispose();
+            }
+        });
+
+        return transformer;
+    }
+
     mapBoolean<U>(trueValue: U, falseValue: U): Value<U> {
         const transformer = new ValueObserver<U, T>(this, (value) => {
-            if (value === true) {
+            if (toBoolean(value) === true) {
                 return trueValue;
-            } else if (value === false) {
-                return falseValue;
             } else {
-                return undefined as unknown as U;
+                return falseValue;
             }
         });
 
@@ -115,7 +125,7 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
     }
 
     not(): Value<boolean> {
-        const transformer = new ValueObserver<boolean, T>(this, (value) => !value);
+        const transformer = new ValueObserver<boolean, T>(this, (value) => !toBoolean(value));
         transformer.on("afterUnsubscribe", () => {
             if (transformer.subscribersLength === 0) {
                 transformer.dispose();
@@ -126,7 +136,7 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
     }
 
     and<U>(other: Value<U>): Value<boolean> {
-        const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => !!a && !!b);
+        const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => toBoolean(a) && toBoolean(b));
         transformer.on("afterUnsubscribe", () => {
             if (transformer.subscribersLength === 0) {
                 transformer.dispose();
@@ -137,7 +147,7 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
     }
 
     or<U extends ValueTypes>(other: Value<U>): Value<boolean> {
-        const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => !!a || !!b);
+        const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => toBoolean(a) || toBoolean(b));
         transformer.on("afterUnsubscribe", () => {
             if (transformer.subscribersLength === 0) {
                 transformer.dispose();
@@ -192,29 +202,19 @@ export class ValueStore<T extends ValueTypes, E extends ValueEvents = ValueEvent
         };
     }
 
-    set(value: ((value: T, initValue: T) => T) | T extends object ? Record<string, unknown> : T): void {
-        const newValue = typeof value === "function" ? value(this.get(), this.initValue) : value;
+    set(value: T): void {
         this.prev = this.get();
 
-        if (this.value !== newValue) {
+        if (this.value !== value && value !== undefined && value !== null && typeof value === typeof this.value) {
             if (Array.isArray(this.value)) {
-                this.value = [...newValue] as T;
+                this.value = [...(value as unknown as any[])] as T;
             } else if (typeof this.value === "object") {
-                // this.value = { ...(this.value as object), ...newValue };
-                this.value = mergeDeep(this.value as Record<string, unknown>, newValue) as T;
+                this.value = mergeDeep(this.value as Record<string, unknown>, value as Record<string, unknown>) as T;
             } else {
-                this.value = newValue;
+                this.value = value;
             }
 
             this.deliveryValue(this.value, this.prev);
-        }
-    }
-
-    reinitAndSet(value: T extends object ? Record<string, unknown> : T): void {
-        if (typeof value === "object") {
-            this.set({ ...(this.initValue as object), ...value });
-        } else {
-            this.set(value);
         }
     }
 
@@ -250,19 +250,19 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
     private readonly watch: Value<T>;
     private prev: K | undefined;
     private value: K;
-    private transform: (value: T | undefined) => K;
+    private _transform: (value: T | undefined) => K;
 
     constructor(watch: Value<T>, transform: (value: T | undefined) => K) {
         super();
 
         this.watch = watch;
 
-        this.transform = transform;
-        this.value = this.transform(this.watch.get());
+        this._transform = transform;
+        this.value = this._transform(this.watch.get());
 
         this.register(
             this.watch.subscribe((value) => {
-                const newValue = this.transform(value);
+                const newValue = this._transform(value);
 
                 if (this.value !== newValue) {
                     this.prev = this.value;

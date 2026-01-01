@@ -8,6 +8,7 @@ export interface IRemovable {
     remove(): void;
 }
 export type DisposeFn = () => void;
+export declare function createDisposeFn(fn: DisposeFn): DisposeFn;
 export declare abstract class Disposable implements IDisposable {
     protected _disposed: boolean;
     private _disposables;

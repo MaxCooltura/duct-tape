@@ -1,4 +1,4 @@
-import { Disposable } from "./disposable";
+import { createDisposeFn, Disposable, DisposeFn } from "./disposable";
 import { Value } from "./value";
 
 // export const SELECTOR_REGEX = /([\w-]+)?(#([\w-]+))?((\.([\w-]+))*)/;
@@ -25,6 +25,11 @@ import { Value } from "./value";
 //     )
 //     .mount(document.body);
 
+export interface DOMEventListener {
+    eventType: string;
+    listener: EventListenerOrEventListenerObject;
+}
+
 export type DOMNodeEventMap = {
     changeParent: Element;
 };
@@ -34,19 +39,26 @@ export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
 }
 
 export function create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T> {
-    const dom = new DOMNode<T>(selector);
-
-    if (scope instanceof Disposable) {
-        scope.register(dom);
-    }
+    const dom = DOMNode.create<T>(selector);
 
     return dom;
 }
 
 export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     private _element: HTMLElementTagNameMap[T];
+    private _events: Map<DisposeFn, DOMEventListener> = new Map();
 
-    constructor(selector: T) {
+    static create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T> {
+        const dom = new DOMNode<T>(selector);
+
+        if (scope instanceof Disposable) {
+            scope.register(dom);
+        }
+
+        return dom;
+    }
+
+    protected constructor(selector: T) {
         super();
 
         const match = selector.split(":");
@@ -59,6 +71,16 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         } else {
             throw new Error("Invalid selector");
         }
+    }
+
+    override dispose(): void {
+        if (this._disposed) {
+            return;
+        }
+
+        this._element.remove();
+
+        super.dispose();
     }
 
     attr(name: string, value: string | number | Value<unknown>): this {
@@ -144,16 +166,44 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     }
 
     on(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): this {
+        for (const [, event] of this._events.entries()) {
+            if (event.eventType === eventType && event.listener === listener) {
+                console.warn(`The event listener for ${eventType} is already registered on this element.`);
+                return this;
+            }
+        }
+
         this._element.addEventListener(eventType, listener, options);
-        this.register(() => {
+
+        const dispose = createDisposeFn(() => {
             this._element.removeEventListener(eventType, listener, options);
         });
+        this.register(dispose);
+        this._events.set(dispose, { eventType, listener });
+
         return this;
     }
 
     off(eventType: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): this {
         this._element.removeEventListener(eventType, listener, options);
+        for (const [dispose, event] of this._events.entries()) {
+            if (event.eventType === eventType && event.listener === listener) {
+                this._events.delete(dispose);
+                this.unregister(dispose);
+                break;
+            }
+        }
+
         return this;
+    }
+
+    datum<D>(data?: D): this | D {
+        if (arguments.length === 0) {
+            return (this._element as any).__datum__;
+        } else {
+            (this._element as any).__datum__ = data;
+            return this;
+        }
     }
 
     text(content: string | Value<string | number>): this {
