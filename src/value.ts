@@ -2,35 +2,12 @@ import { UnsubscribeFn } from "./unsubscribe";
 import Emitter from "./emitter";
 import { mergeDeep } from "./common";
 import { toBoolean } from "./to";
+import { Disposable } from "./disposable";
 
 export interface ListenerHandle<T> {
     callback: ListenerFn<T>;
     scope: object;
 }
-
-/*
-    Value system with reactive subscriptions
-
-    Value<T> - read-only reactive value
-    ValueStore<T> - read-write reactive value
-    ValueObserver<K, T> - derived reactive value from another Value<T> with transformation function
-    ValueLogicObserver<T1, T2> - derived reactive boolean value from two Value<T> with logical operation
-
-    Example usage:
-
-    new ValueStore<string>("initial value");
-    .set("new value");
-    .get() => "new value"
-    .subscribe((value, prev) => { ... });
-
-    .format((value) => `Formatted: ${value}`) => Value<string>
-    .equal("test") => Value<boolean>
-    .notEqual("test") => Value<boolean>
-    .mapBoolean(trueValue, falseValue) => Value<trueValue | falseValue>
-    .not() => Value<boolean>
-    .and(otherValue) => Value<boolean>
-    .or(otherValue) => Value<boolean>
-*/
 
 export type ListenerFn<T> = (value: T, prev: T | undefined) => void;
 
@@ -38,15 +15,15 @@ export type ValueTypes = undefined | string | number | symbol | boolean | object
 
 export type ValueFormatterFn<T> = (value: T) => string;
 
-export interface ValueReaderEvents {
-    afterUnsubscribe: undefined;
+export function createValue<T>(value: T, register?: Disposable): ValueStore<T> {
+    return new ValueStore<T>(value, register);
 }
 
-export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> extends Emitter<E> {
+export abstract class Value<T> extends Disposable {
     abstract get(): T;
     abstract subscribe(callback: ListenerFn<T>, scope?: object): UnsubscribeFn;
 
-    equal(test: ((value: T | undefined) => boolean) | string | boolean | number): Value<boolean> {
+    equal(test: ((value: T | undefined) => boolean) | string | boolean | number, register?: Disposable): Value<boolean> {
         let transform: (value: T | undefined) => boolean;
 
         if (test instanceof Function) {
@@ -56,16 +33,15 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
         }
 
         const transformer = new ValueObserver<boolean, T>(this, transform);
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    notEqual(test: (value: T | undefined) => boolean | string): Value<boolean> {
+    notEqual(test: (value: T | undefined) => boolean | string, register?: Disposable): Value<boolean> {
         let transform: (value: T | undefined) => boolean;
 
         if (typeof test === "string") {
@@ -75,38 +51,35 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
         }
 
         const transformer = new ValueObserver<boolean, T>(this, transform);
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    format(formatter: ValueObserverTransform): Value<string> {
+    format(formatter: ValueObserverTransform<T, string>, register?: Disposable): Value<string> {
         const transformer = new ValueObserver<string, T>(this, formatter);
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    map<U>(transformerFn: ValueObserverTransform): Value<U> {
+    map<U>(transformerFn: ValueObserverTransform<T, U>, register?: Disposable): Value<U> {
         const transformer = new ValueObserver<U, T>(this, transformerFn);
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    mapBoolean<U>(trueValue: U, falseValue: U): Value<U> {
+    mapBoolean<U>(trueValue: U, falseValue: U, register?: Disposable): Value<U> {
         const transformer = new ValueObserver<U, T>(this, (value) => {
             if (toBoolean(value) === true) {
                 return trueValue;
@@ -115,73 +88,77 @@ export abstract class Value<T, E extends ValueReaderEvents = ValueReaderEvents> 
             }
         });
 
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    not(): Value<boolean> {
+    not(register?: Disposable): Value<boolean> {
         const transformer = new ValueObserver<boolean, T>(this, (value) => !toBoolean(value));
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    and<U>(other: Value<U>): Value<boolean> {
+    and<U>(other: Value<U>, register?: Disposable): Value<boolean> {
         const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => toBoolean(a) && toBoolean(b));
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 
-    or<U extends ValueTypes>(other: Value<U>): Value<boolean> {
+    or<U extends ValueTypes>(other: Value<U>, register?: Disposable): Value<boolean> {
         const transformer = new ValueLogicObserver<T, U>(this, other, (a, b) => toBoolean(a) || toBoolean(b));
-        transformer.on("afterUnsubscribe", () => {
-            if (transformer.subscribersLength === 0) {
-                transformer.dispose();
-            }
-        });
+
+        if (register) {
+            register.register(transformer);
+        }
 
         return transformer;
     }
 }
 
-export function isValue<T>(object: unknown): object is Value<T, ValueReaderEvents> {
+export function isValue<T>(object: unknown): object is Value<T> {
     return object instanceof Value;
 }
 
-export type ValueEvents = ValueReaderEvents;
-
-export class ValueStore<T extends ValueTypes, E extends ValueEvents = ValueEvents> extends Value<T, E> {
+export class ValueStore<T extends ValueTypes> extends Value<T> {
     private listeners: ListenerHandle<T>[] = [];
     private value: T;
     private initValue: T;
     private prev: T | undefined;
+    private _register?: Disposable;
 
-    constructor(value: T) {
+    constructor(value: T, register?: Disposable) {
         super();
 
+        this._register = register;
         this.value = value;
         this.initValue = value;
         this.prev = undefined;
+
+        if (register) {
+            register.register(this);
+        }
     }
 
     override dispose(): void {
         if (this.disposed) return;
 
         this.listeners.splice(0, this.listeners.length);
+
+        if (this._register) {
+            this._register.unregister(this);
+            this._register = undefined;
+        }
 
         super.dispose();
     }
@@ -198,7 +175,6 @@ export class ValueStore<T extends ValueTypes, E extends ValueEvents = ValueEvent
 
         return () => {
             this.listeners.splice(this.listeners.indexOf(handle), 1);
-            this.emit("afterUnsubscribe", this as unknown as E["afterUnsubscribe"]);
         };
     }
 
@@ -243,16 +219,17 @@ export class ValueStore<T extends ValueTypes, E extends ValueEvents = ValueEvent
     }
 }
 
-export type ValueObserverTransform = <T extends ValueTypes, K>(value: T) => K;
+export type ValueObserverTransform<T extends ValueTypes, K> = (value: T) => K;
 
 export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
     private listeners: ListenerHandle<K>[] = [];
-    private readonly watch: Value<T>;
+    private watch?: Value<T>;
     private prev: K | undefined;
     private value: K;
-    private _transform: (value: T | undefined) => K;
+    private _transform: (value: T) => K;
+    private _unsubscribe: UnsubscribeFn | null = null;
 
-    constructor(watch: Value<T>, transform: (value: T | undefined) => K) {
+    constructor(watch: Value<T>, transform: (value: T) => K) {
         super();
 
         this.watch = watch;
@@ -260,17 +237,25 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
         this._transform = transform;
         this.value = this._transform(this.watch.get());
 
-        this.register(
-            this.watch.subscribe((value) => {
-                const newValue = this._transform(value);
+        this._unsubscribe = this.watch.subscribe((value) => {
+            const newValue = this._transform(value);
 
-                if (this.value !== newValue) {
-                    this.prev = this.value;
-                    this.value = newValue;
-                    this.deliverValue(this.value, this.prev);
-                }
-            })
-        );
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        })
+    }
+
+    override dispose(): void {
+        if (this.disposed) return;
+
+        this.watch = undefined;
+        this._unsubscribe?.();
+        this.listeners.splice(0, this.listeners.length);
+
+        super.dispose();
     }
 
     subscribe(callback: ListenerFn<K>, scope: object = this): UnsubscribeFn {
@@ -285,7 +270,6 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
 
         return () => {
             this.listeners.splice(this.listeners.indexOf(handle), 1);
-            this.emit("afterUnsubscribe", undefined);
         };
     }
 
@@ -294,7 +278,7 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
     }
 
     override toString(): string {
-        return this.watch.toString();
+        return this.watch?.toString() || "";
     }
 
     get subscribersLength(): number {
@@ -314,8 +298,8 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
 
 export class ValueLogicObserver<T1 extends ValueTypes, T2 extends ValueTypes> extends Value<boolean> {
     private listeners: ListenerHandle<boolean>[] = [];
-    private readonly watch1: Value<T1>;
-    private readonly watch2: Value<T2>;
+    private watch1?: Value<T1>;
+    private watch2?: Value<T2>;
     private prev: boolean | undefined;
     private value: boolean;
     private transform: (value1: T1, value2: T2) => boolean;
@@ -329,29 +313,35 @@ export class ValueLogicObserver<T1 extends ValueTypes, T2 extends ValueTypes> ex
         this.transform = transform;
         this.value = this.transform(this.watch1.get(), this.watch2.get());
 
-        this.register(
-            this.watch1.subscribe((value) => {
-                const newValue = this.transform(value, this.watch2.get());
+        watch1.subscribe((value) => {
+            const newValue = this.transform(value, watch2.get());
 
-                if (this.value !== newValue) {
-                    this.prev = this.value;
-                    this.value = newValue;
-                    this.deliverValue(this.value, this.prev);
-                }
-            })
-        );
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        })
 
-        this.register(
-            this.watch2.subscribe((value) => {
-                const newValue = this.transform(this.watch1.get(), value);
+        watch2.subscribe((value) => {
+            const newValue = this.transform(watch1.get(), value);
 
-                if (this.value !== newValue) {
-                    this.prev = this.value;
-                    this.value = newValue;
-                    this.deliverValue(this.value, this.prev);
-                }
-            })
-        );
+            if (this.value !== newValue) {
+                this.prev = this.value;
+                this.value = newValue;
+                this.deliverValue(this.value, this.prev);
+            }
+        })
+    }
+
+    override dispose(): void {
+        if (this.disposed) return;
+
+        this.watch1 = undefined;
+        this.watch2 = undefined;
+        this.listeners.splice(0, this.listeners.length);
+
+        super.dispose();
     }
 
     subscribe(callback: ListenerFn<boolean>, scope: object = this): UnsubscribeFn {
@@ -366,7 +356,6 @@ export class ValueLogicObserver<T1 extends ValueTypes, T2 extends ValueTypes> ex
 
         return () => {
             this.listeners.splice(this.listeners.indexOf(handle), 1);
-            this.emit("afterUnsubscribe", undefined);
         };
     }
 
@@ -375,7 +364,7 @@ export class ValueLogicObserver<T1 extends ValueTypes, T2 extends ValueTypes> ex
     }
 
     override toString(): string {
-        return this.watch1.toString() + this.watch2.toString();
+        return `${this.watch1?.toString()} ${this.watch2?.toString()}`;
     }
 
     get subscribersLength(): number {
@@ -390,13 +379,5 @@ export class ValueLogicObserver<T1 extends ValueTypes, T2 extends ValueTypes> ex
 
     private deliverValueToSubscriber(handle: ListenerHandle<boolean>, value: boolean, prev: boolean | undefined): void {
         handle.callback.call(handle.scope, value, prev);
-    }
-
-    override dispose(): void {
-        if (this.disposed) return;
-
-        this.listeners.splice(0, this.listeners.length);
-
-        super.dispose();
     }
 }

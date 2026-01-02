@@ -38,8 +38,8 @@ export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
     new(selector: T): DOMNode<T>;
 }
 
-export function create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T> {
-    const dom = DOMNode.create<T>(selector);
+export function create<T extends keyof HTMLElementTagNameMap>(selector: T, register?: Disposable): DOMNode<T> {
+    const dom = DOMNode.create<T>(selector, register);
 
     return dom;
 }
@@ -47,19 +47,17 @@ export function create<T extends keyof HTMLElementTagNameMap>(selector: T, scope
 export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     private _element: HTMLElementTagNameMap[T];
     private _events: Map<DisposeFn, DOMEventListener> = new Map();
+    private _register?: Disposable;
 
-    static create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T> {
-        const dom = new DOMNode<T>(selector);
-
-        if (scope instanceof Disposable) {
-            scope.register(dom);
-        }
-
+    static create<T extends keyof HTMLElementTagNameMap>(selector: T, register?: Disposable): DOMNode<T> {
+        const dom = new DOMNode<T>(selector, register);
         return dom;
     }
 
-    protected constructor(selector: T) {
+    protected constructor(selector: T, register?: Disposable) {
         super();
+
+        this._register = register;
 
         const match = selector.split(":");
         if (match.length === 1) {
@@ -71,6 +69,10 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         } else {
             throw new Error("Invalid selector");
         }
+
+        if (this._register) {
+            this._register.register(this);
+        }
     }
 
     override dispose(): void {
@@ -78,7 +80,13 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
             return;
         }
 
+
         this._element.remove();
+
+        if (this._register) {
+            this._register.unregister(this);
+            this._register = undefined;
+        }
 
         super.dispose();
     }

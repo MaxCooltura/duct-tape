@@ -10,12 +10,13 @@ export type DOMNodeEventMap = {
 export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
     new (selector: T): DOMNode<T>;
 }
-export declare function create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T>;
+export declare function create<T extends keyof HTMLElementTagNameMap>(selector: T, register?: Disposable): DOMNode<T>;
 export declare class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     private _element;
     private _events;
-    static create<T extends keyof HTMLElementTagNameMap>(selector: T, scope?: Disposable): DOMNode<T>;
-    protected constructor(selector: T);
+    private _register?;
+    static create<T extends keyof HTMLElementTagNameMap>(selector: T, register?: Disposable): DOMNode<T>;
+    protected constructor(selector: T, register?: Disposable);
     dispose(): void;
     attr(name: string, value: string | number | Value<unknown>): this;
     property(name: string): string | undefined;

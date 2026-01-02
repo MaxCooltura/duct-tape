@@ -18,3 +18,6 @@ export declare abstract class Disposable implements IDisposable {
     register<T extends IDisposable | IDestroyable | IRemovable | DisposeFn>(o: T): T;
     unregister<T extends IDisposable | IDestroyable | IRemovable | DisposeFn | EventListenerOrEventListenerObject>(o: T): void;
 }
+export declare class DummyDisposable extends Disposable {
+    constructor();
+}
