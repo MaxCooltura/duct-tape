@@ -8,7 +8,12 @@
     ],
     "words": [
         "duct",
-        "wojtis"
+        "wojtis",
+        "onrun",
+        "onafterload",
+        "onafterunload",
+        "onaftershow",
+        "onafterclose"
     ],
     "ignoreWords": [],
     "import": []

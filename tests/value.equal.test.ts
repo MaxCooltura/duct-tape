@@ -73,18 +73,18 @@ describe("Value.equal", () => {
         const store = new ValueStore<string>("foo");
         const equalFoo = store.equal("foo");
 
-        const unsubscribe1 = equalFoo.subscribe(() => {});
-        const unsubscribe2 = equalFoo.subscribe(() => {});
+        const unsubscribe1 = equalFoo.subscribe(() => { });
+        const unsubscribe2 = equalFoo.subscribe(() => { });
 
         expect((equalFoo as any).subscribersLength).toBe(2);
-        expect((equalFoo as any).disposed).toBe(false);
+        expect(equalFoo.get()).toBe(true);
 
         unsubscribe1();
         expect((equalFoo as any).subscribersLength).toBe(1);
-        expect((equalFoo as any).disposed).toBe(false);
+        expect(equalFoo.get()).toBe(true);
 
         unsubscribe2();
         expect((equalFoo as any).subscribersLength).toBe(0);
-        expect((equalFoo as any).disposed).toBe(true);
+        expect(equalFoo.get()).toBe(true);
     });
 });

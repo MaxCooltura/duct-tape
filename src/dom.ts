@@ -35,7 +35,7 @@ export type DOMNodeEventMap = {
 };
 
 export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
-  new (selector: T): DOMNode<T>;
+  new(selector: T): DOMNode<T>;
 }
 
 export function create<T extends keyof HTMLElementTagNameMap>(
@@ -232,11 +232,11 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
-  datum<D>(data?: D): this | D {
+  data<D>(data?: D): this | D {
     if (arguments.length === 0) {
-      return (this._element as any).__datum__;
+      return (this._element as any).__data__;
     } else {
-      (this._element as any).__datum__ = data;
+      (this._element as any).__data__ = data;
       return this;
     }
   }

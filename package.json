@@ -3,8 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "license": "ISC",
-    "module": "build/index.js",
-    "types": "build/index.d.ts",
+    "type": "module",
+    "module": "./build/index.js",
+    "types": "./build/index.d.ts",
     "contributors": [
         "Arkadiusz Wojtis"
     ],
