@@ -10,21 +10,13 @@ export abstract class Page<T_STORE, T_CONFIG> extends DOMNode<"div"> {
     protected readonly _store: T_STORE;
     protected readonly _config: T_CONFIG;
 
-    constructor(app: App<T_STORE, T_CONFIG>, store: T_STORE, config: T_CONFIG, classNames: string | string[] = []
+    constructor(app: App<T_STORE, T_CONFIG>, store: T_STORE, config: T_CONFIG
     ) {
         super("div");
 
         this._app = app;
         this._store = store;
         this._config = config;
-
-        if (classNames) {
-            if (Array.isArray(classNames)) {
-                this.class([...classNames]);
-            } else {
-                this.class(classNames);
-            }
-        }
     }
 
     async load(): Promise<void | Promise<void>> {

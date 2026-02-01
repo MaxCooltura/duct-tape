@@ -8,3 +8,4 @@ export * from './src/app';
 export * from './src/page';
 export * from './src/service';
 export * from './src/modal';
+export * from './src/utils/console-colors';
