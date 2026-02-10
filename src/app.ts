@@ -3,7 +3,7 @@ import { Modal } from "./modal";
 import { Page, PageConstructor } from "./page";
 import { Service } from "./service";
 import { create, DOMNode } from "./dom";
-import { Value, ValueStore } from "./value";
+import { Value, ValueStore, ValueStoreRaw } from "./value";
 import { log } from "./utils/log";
 
 export enum PageType {
@@ -36,6 +36,7 @@ export function decodeParams(value: string): Map<string, string> {
 
 export interface AppOptions<T_STORE> {
     appClassName?: string | string[];
+    appContainerClassName?: string | string[];
     backgroundContainerEnabled?: boolean;
     backgroundContainerClassName?: string | string[];
     pageContainerClassName?: string | string[];
@@ -46,6 +47,7 @@ export interface AppOptions<T_STORE> {
 
 export class App<T_STORE, T_CONFIG> extends Disposable {
     public readonly appDiv: DOMNode<"div">;
+    private readonly appContainer: DOMNode<"div">;
     private readonly backgroundContainer?: DOMNode<"div">;
     private readonly pageContainer: DOMNode<"div">;
     private readonly overflowContainer?: DOMNode<"div">;
@@ -56,13 +58,14 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     private readonly backgroundPageConstructors: PageConstructor<T_STORE, T_CONFIG>[] = [];
     private readonly overflowPageConstructors: PageConstructor<T_STORE, T_CONFIG>[] = [];
     private readonly _options: AppOptions<T_STORE>;
+    private readonly _parent: HTMLElement;
     public readonly store: T_STORE;
     public readonly config: T_CONFIG;
 
     private backgroundPages: Page<T_STORE, T_CONFIG>[] = [];
     private overflowPages: Page<T_STORE, T_CONFIG>[] = [];
     private _currentPage?: Page<T_STORE, T_CONFIG>;
-    public readonly pageId: ValueStore<PageConstructor<T_STORE, T_CONFIG> | null> = new ValueStore<PageConstructor<T_STORE, T_CONFIG> | null>(null);
+    public readonly pageId: ValueStore<PageConstructor<T_STORE, T_CONFIG> | null> = new ValueStoreRaw<PageConstructor<T_STORE, T_CONFIG> | null>(null);
 
     static create<T_STORE, T_CONFIG>(
         parent: HTMLElement,
@@ -81,22 +84,23 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this.store = store;
         this.config = config;
         this._options = options;
+        this._parent = parent;
 
-        this.appDiv = this.register(create("div").class(options.appClassName ?? []).mount(parent));
+        this.appDiv = this.register(create("div").class(options.appClassName ?? []).mount(this._parent));
+        this.appContainer = this.register(create("div").class(options.appContainerClassName ?? []).mount(this.appDiv));
+
         if (options.backgroundContainerEnabled === true) {
-            this.backgroundContainer = this.register(create("div").class(options.backgroundContainerClassName ?? []).mount(this.appDiv));
+            this.backgroundContainer = this.register(create("div").class(options.backgroundContainerClassName ?? []).mount(this.appContainer));
         }
-        this.pageContainer = this.register(create("div").class(options.pageContainerClassName ?? []).mount(this.appDiv));
+
+        this.pageContainer = this.register(create("div").class(options.pageContainerClassName ?? []).mount(this.appContainer));
+
+
         if (options.overflowContainerEnabled === true) {
-            this.overflowContainer = this.register(create("div").class(options.overflowContainerClassName ?? []).mount(this.appDiv));
+            this.overflowContainer = this.register(create("div").class(options.overflowContainerClassName ?? []).mount(this.appContainer));
         }
-        this.modalsContainer = this.register(create("div").class(options.modalContainerClassName ?? []).style("display", "none").mount(this.appDiv));
-        // TODO: move to extternal init function + add event system
-        // const callback = this.navigateFromHash.bind(this);
-        // window.addEventListener("hashchange", callback);
-        // this.register(() => {
-        //     window.removeEventListener("hashchange", callback);
-        // });
+
+        this.modalsContainer = this.register(create("div").class(options.modalContainerClassName ?? []).style("display", "none").mount(this.appContainer));
     }
 
     override dispose(): void {
@@ -119,6 +123,34 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this.pageId.dispose();
 
         super.dispose();
+    }
+
+    fullscreen(): void {
+        if (this.parent.requestFullscreen) {
+            this.parent.requestFullscreen();
+        } else if ((this.parent as any).webkitRequestFullscreen) { /* Safari */
+            (this.parent as any).webkitRequestFullscreen();
+        } else if ((this.parent as any).msRequestFullscreen) { /* IE11 */
+            (this.parent as any).msRequestFullscreen();
+        }
+    }
+
+    exitFullscreen(): void {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) { /* Safari */
+            (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) { /* IE11 */
+            (document as any).msExitFullscreen();
+        }
+    }
+
+    get isFullscreen(): boolean {
+        return !!document.fullscreenElement;
+    }
+
+    get parent(): HTMLElement {
+        return this._parent;
     }
 
     findPageByName(name: string): PageConstructor<T_STORE, T_CONFIG> | undefined {
@@ -216,6 +248,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
             }
 
             this._currentPage = undefined;
+            this.pageId.set(null);
         }
 
         // const params: Map<string, string> = new Map();
@@ -225,9 +258,9 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         // }
 
         this._currentPage = new nextPage(this, this.store, this.config);
-        this.pageId.set(to);
         await this._currentPage.load();
         this._currentPage.mount(this.pageContainer);
+        this.pageId.set(to);
 
         // loader?.classList.add("none");
         // pages.style.removeProperty("visibility");

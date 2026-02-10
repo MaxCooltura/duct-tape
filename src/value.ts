@@ -166,9 +166,9 @@ export function isValue<T>(object: unknown): object is Value<T> {
 
 export class ValueStore<T extends ValueTypes> extends Value<T> {
   private listeners: ListenerHandle<T>[] = [];
-  private value: T;
+  protected value: T;
   private initValue: T;
-  private prev: T | undefined;
+  protected prev: T | undefined;
   private _register?: Disposable;
 
   constructor(value: T, register?: Disposable) {
@@ -216,10 +216,7 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
     this.prev = this.get();
 
     if (
-      this.value !== value &&
-      value !== undefined &&
-      value !== null &&
-      typeof value === typeof this.value
+      this.value !== value
     ) {
       if (Array.isArray(this.value)) {
         this.value = [...(value as unknown as any[])] as T;
@@ -264,6 +261,18 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
     prev: T | undefined,
   ): void {
     handle.callback.call(handle.scope, value, prev);
+  }
+}
+
+export class ValueStoreRaw<T> extends ValueStore<T> {
+  constructor(value: T, register?: Disposable) {
+    super(value, register);
+  }
+
+  override set(value: T): void {
+    this.prev = this.get();
+    this.value = value;
+    this.deliveryValue(this.value, this.prev);
   }
 }
 

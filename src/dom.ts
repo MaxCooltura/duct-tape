@@ -99,16 +99,39 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     super.dispose();
   }
 
-  attr(name: string, value: string | number | Value<unknown>): this {
-    if (value instanceof Value) {
+  attr(name: string, value: string | number | Value<unknown>, condition: boolean | Value<boolean> = true): this {
+    if (condition instanceof Value) {
       this.register(
-        value.subscribe((val) => {
-          this._element.setAttribute(name, String(val));
+        condition.subscribe((cond) => {
+          if (cond) {
+            if (value instanceof Value) {
+              this.register(
+                value.subscribe((val) => {
+                  this._element.setAttribute(name, String(val));
+                }),
+              );
+            } else {
+              this._element.setAttribute(name, String(value));
+            }
+          } else {
+            this._element.removeAttribute(name);
+          }
         }),
       );
+    } else if (condition) {
+      if (value instanceof Value) {
+        this.register(
+          value.subscribe((val) => {
+            this._element.setAttribute(name, String(val));
+          }),
+        );
+      } else {
+        this._element.setAttribute(name, String(value));
+      }
     } else {
-      this._element.setAttribute(name, String(value));
+      this._element.removeAttribute(name);
     }
+
     return this;
   }
 
@@ -137,16 +160,37 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
-  style(name: string, value: string | Value<string>): this {
-    if (value instanceof Value) {
+  style(name: string, value: string | Value<string>, condition: boolean | Value<boolean> = true): this {
+    if (condition instanceof Value) {
       this.register(
-        value.subscribe((val) => {
-          (this._element.style as any)[name] = val;
+        condition.subscribe((cond) => {
+          if (cond) {
+            if (value instanceof Value) {
+              this.register(
+                value.subscribe((val) => {
+                  this._element.style.setProperty(name, val);
+                }),
+              );
+            } else {
+              this._element.style.setProperty(name, value);
+            }
+          } else {
+            this._element.style.removeProperty(name);
+          }
         }),
       );
-    } else {
-      (this._element.style as any)[name] = value;
+    } else if (condition) {
+      if (value instanceof Value) {
+        this.register(
+          value.subscribe((val) => {
+            this._element.style.setProperty(name, val);
+          }),
+        );
+      } else {
+        this._element.style.setProperty(name, value);
+      }
     }
+
     return this;
   }
 
@@ -205,6 +249,10 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     }
 
     this._element.addEventListener(eventType, listener, options);
+
+    if (options && typeof options === 'object' && options.once) {
+      return this;
+    }
 
     const dispose = createDisposeFn(() => {
       this._element.removeEventListener(eventType, listener, options);
