@@ -338,15 +338,6 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         await modal.show();
     }
 
-    async addModalAndWait(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
-        return new Promise<void>(async (resolve) => {
-            await this.addModal(modal);
-            modal.on("afterClose", () => {
-                resolve();
-            });
-        });
-    }
-
     async removeModal(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
         if (!this.modals.includes(modal)) {
             return;

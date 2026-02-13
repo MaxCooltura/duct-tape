@@ -3,10 +3,10 @@ import { DOMNode, DOMNodeEventMap } from "./dom";
 
 export interface ModalOptions<T_STORE, T_CONFIG> {
     classNames?: string | string[];
-    onafterload?: (modal: Modal<T_STORE, T_CONFIG>) => void;
-    onafterunload?: (modal: Modal<T_STORE, T_CONFIG>) => void;
-    onaftershow?: (modal: Modal<T_STORE, T_CONFIG>) => void;
-    onafterclose?: (modal: Modal<T_STORE, T_CONFIG>) => void;
+    onAfterLoad?: (modal: Modal<T_STORE, T_CONFIG>) => void;
+    onAfterUnload?: (modal: Modal<T_STORE, T_CONFIG>) => void;
+    onAfterShow?: (modal: Modal<T_STORE, T_CONFIG>) => void;
+    onAfterClose?: (modal: Modal<T_STORE, T_CONFIG>) => void;
 }
 
 export class Modal<T_STORE, T_CONFIG> extends DOMNode<"div"> {
@@ -33,28 +33,28 @@ export class Modal<T_STORE, T_CONFIG> extends DOMNode<"div"> {
     }
 
     async load() {
-        if (this._options?.onafterload) {
-            this._options.onafterload(this);
+        if (this._options?.onAfterLoad) {
+            this._options.onAfterLoad(this);
         }
     }
 
     async unload() {
-        if (this._options?.onafterunload) {
-            this._options.onafterunload(this);
+        if (this._options?.onAfterUnload) {
+            this._options.onAfterUnload(this);
         }
     }
 
     async show() {
-        if (this._options?.onaftershow) {
-            this._options.onaftershow(this);
+        if (this._options?.onAfterShow) {
+            this._options.onAfterShow(this);
         }
     }
 
     async close() {
         await this._app?.removeModal(this);
 
-        if (this._options?.onafterclose) {
-            this._options.onafterclose(this);
+        if (this._options?.onAfterClose) {
+            this._options.onAfterClose(this);
         }
     }
 }

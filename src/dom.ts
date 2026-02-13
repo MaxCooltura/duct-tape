@@ -99,7 +99,13 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     super.dispose();
   }
 
-  attr(name: string, value: string | number | Value<unknown>, condition: boolean | Value<boolean> = true): this {
+  attr(name: string): string | null;
+  attr(name: string, value: string | number | null | Value<unknown>, condition?: boolean | Value<boolean>): this;
+  attr(name: string, value?: string | number | null | Value<unknown>, condition?: boolean | Value<boolean>): this | string | null {
+    if (value === undefined && condition === undefined) {
+      return this._element.getAttribute(name);
+    }
+
     if (condition instanceof Value) {
       this.register(
         condition.subscribe((cond) => {
@@ -107,29 +113,61 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
             if (value instanceof Value) {
               this.register(
                 value.subscribe((val) => {
-                  this._element.setAttribute(name, String(val));
+                  if (val === null || val === undefined || val === "") {
+                    this._element.removeAttribute(name);
+                  } else {
+                    this._element.setAttribute(name, String(val));
+                  }
                 }),
               );
             } else {
-              this._element.setAttribute(name, String(value));
+              if (value === null || value === undefined || value === "") {
+                this._element.removeAttribute(name);
+              } else {
+                this._element.setAttribute(name, String(value));
+              }
             }
           } else {
             this._element.removeAttribute(name);
           }
         }),
       );
-    } else if (condition) {
+    } else if (condition === true) {
       if (value instanceof Value) {
         this.register(
           value.subscribe((val) => {
-            this._element.setAttribute(name, String(val));
+            if (val === null || val === undefined || val === "") {
+              this._element.removeAttribute(name);
+            } else {
+              this._element.setAttribute(name, String(val));
+            }
           }),
         );
       } else {
-        this._element.setAttribute(name, String(value));
+        if (value === null || value === undefined || value === "") {
+          this._element.removeAttribute(name);
+        } else {
+          this._element.setAttribute(name, String(value));
+        }
       }
     } else {
-      this._element.removeAttribute(name);
+      if (value instanceof Value) {
+        this.register(
+          value.subscribe((v) => {
+            if (v === null || v === undefined || v === "") {
+              this._element.removeAttribute(name);
+            } else {
+              this._element.setAttribute(name, String(v));
+            }
+          }),
+        );
+      } else {
+        if (value === null || value === undefined || value === "") {
+          this._element.removeAttribute(name);
+        } else {
+          this._element.setAttribute(name, String(value));
+        }
+      }
     }
 
     return this;
@@ -280,13 +318,27 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
-  data<D>(data?: D): this | D {
-    if (arguments.length === 0) {
-      return (this._element as any).__data__;
+  // data<D>(data?: D): this | D {
+  //   if (arguments.length === 0) {
+  //     return (this._element as any).__data__;
+  //   } else {
+  //     (this._element as any).__data__ = data;
+  //     return this;
+  //   }
+  // }
+
+
+  dataset(name: string, value: string | number | Value<string | number>): this {
+    if (value instanceof Value) {
+      this.register(
+        value.subscribe((val) => {
+          this._element.dataset[name] = String(val);
+        }),
+      );
     } else {
-      (this._element as any).__data__ = data;
-      return this;
+      this._element.dataset[name] = String(value);
     }
+    return this;
   }
 
   text(content: string | Value<string | number>): this {
@@ -327,5 +379,9 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
 
   get element(): HTMLElementTagNameMap[T] {
     return this._element;
+  }
+
+  get parent(): HTMLElement | null {
+    return this._element.parentElement;
   }
 }
