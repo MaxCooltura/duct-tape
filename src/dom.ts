@@ -327,8 +327,13 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
   //   }
   // }
 
+  dataset(name: string): string | undefined;
+  dataset(name: string, value: string | number | null | Value<string | number>): this;
+  dataset(name: string, value?: string | number | Value<string | number> | null): this | string | undefined {
+    if (arguments.length === 1) {
+      return this._element.dataset[name];
+    }
 
-  dataset(name: string, value: string | number | Value<string | number>): this {
     if (value instanceof Value) {
       this.register(
         value.subscribe((val) => {
@@ -336,7 +341,11 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         }),
       );
     } else {
-      this._element.dataset[name] = String(value);
+      if (value === null || value === undefined) {
+        delete this._element.dataset[name];
+      } else {
+        this._element.dataset[name] = String(value);
+      }
     }
     return this;
   }
