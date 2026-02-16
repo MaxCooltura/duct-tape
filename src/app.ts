@@ -9,7 +9,7 @@ import { log } from "./utils/log";
 export enum PageType {
     Normal,
     Background,
-    Overflow
+    Overlay
 }
 
 export function encodeParams(map: Map<string, string>): string {
@@ -126,22 +126,18 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     }
 
     fullscreen(): void {
-        if (this.parent.requestFullscreen) {
-            this.parent.requestFullscreen();
-        } else if ((this.parent as any).webkitRequestFullscreen) { /* Safari */
-            (this.parent as any).webkitRequestFullscreen();
-        } else if ((this.parent as any).msRequestFullscreen) { /* IE11 */
-            (this.parent as any).msRequestFullscreen();
-        }
+        this.appDiv.element.requestFullscreen();
     }
 
     exitFullscreen(): void {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) { /* Safari */
-            (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) { /* IE11 */
-            (document as any).msExitFullscreen();
+        document.exitFullscreen();
+    }
+
+    toggleFullscreen(): void {
+        if (this.isFullscreen) {
+            this.exitFullscreen();
+        } else {
+            this.fullscreen();
         }
     }
 
@@ -178,7 +174,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
             }
 
             this.backgroundPageConstructors.push(pageConstructor);
-        } else if (type === PageType.Overflow) {
+        } else if (type === PageType.Overlay) {
 
             if (this._options.overflowContainerEnabled !== true || !this.overflowContainer) {
                 log.error("Overflow container is not enabled in App options.");
@@ -331,6 +327,10 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
             return;
         }
 
+        if (this.modals.length > 0) {
+            this.modals[this.modals.length - 1].element.style.display = "none";
+        }
+
         this.modals.push(modal);
         modal.mount(this.modalsContainer);
         await modal.load();
@@ -347,6 +347,11 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         await modal.close();
         await modal.unload();
         modal.dispose();
+
+        if (this.modals.length > 0) {
+            this.modals[this.modals.length - 1].element.style.display = "flex";
+        }
+
         this.updateModals();
     }
 
