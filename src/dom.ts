@@ -154,7 +154,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
       if (value instanceof Value) {
         this.register(
           value.subscribe((v) => {
-            if (v === null || v === undefined || v === "") {
+            if (v === null || v === undefined || v === "" || condition === false) {
               this._element.removeAttribute(name);
             } else {
               this._element.setAttribute(name, String(v));
@@ -162,7 +162,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
           }),
         );
       } else {
-        if (value === null || value === undefined || value === "") {
+        if (value === null || value === undefined || value === "" || condition === false) {
           this._element.removeAttribute(name);
         } else {
           this._element.setAttribute(name, String(value));
