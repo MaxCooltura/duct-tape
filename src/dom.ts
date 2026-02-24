@@ -176,11 +176,11 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
   property(name: string): string | undefined;
   property(
     name: string,
-    value: string | number | boolean | Value<unknown>,
+    value: string | number | boolean | null | Value<unknown>,
   ): this;
   property(
     name: string,
-    value?: string | number | boolean | Value<unknown>,
+    value?: string | number | boolean | null | Value<unknown>,
   ): this | string | undefined {
     if (value === undefined) {
       return (this._element as any)[name];
@@ -193,7 +193,11 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         }),
       );
     } else {
-      (this._element as any)[name] = value;
+      if (value === null || value === undefined || value === "") {
+        delete (this._element as any)[name];
+      } else {
+        (this._element as any)[name] = value;
+      }
     }
     return this;
   }
