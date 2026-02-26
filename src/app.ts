@@ -45,6 +45,8 @@ export interface AppOptions<T_STORE> {
     modalContainerClassName?: string | string[];
 }
 
+const FOCUSABLE_ELEMENT_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), input[type="radio"]:not([disabled]), input[type="checkbox"]:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export class App<T_STORE, T_CONFIG> extends Disposable {
     public readonly appDiv: DOMNode<"div">;
     private readonly appContainer: DOMNode<"div">;
@@ -66,6 +68,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     private overflowPages: Page<T_STORE, T_CONFIG>[] = [];
     private _currentPage?: Page<T_STORE, T_CONFIG>;
     public readonly pageId: ValueStore<PageConstructor<T_STORE, T_CONFIG> | null> = new ValueStoreRaw<PageConstructor<T_STORE, T_CONFIG> | null>(null);
+    private _isFocusPageLocked: boolean = false;
 
     static create<T_STORE, T_CONFIG>(
         parent: HTMLElement,
@@ -213,6 +216,53 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         return this._currentPage;
     }
 
+    saveAndLockPageFocusableElements(): void {
+        //find all focusable elements
+        const focusableElements = this.getPageFocusableElements();
+
+        focusableElements?.forEach(el => {
+            el.setAttribute("data-original-tabindex", el.getAttribute("tabindex") || "0");
+            el.setAttribute("tabindex", "-1");
+        });
+
+        const overflowFocusableElements = this.getOverflowFocusableElements();
+
+        overflowFocusableElements?.forEach(el => {
+            el.setAttribute("data-original-tabindex", el.getAttribute("tabindex") || "0");
+            el.setAttribute("tabindex", "-1");
+        });
+
+        this._isFocusPageLocked = true;
+    }
+
+    restorePageFocusableElements(): void {
+        const focusableElements = this.currentPage?.element.querySelectorAll<HTMLElement>(
+            '[data-original-tabindex]'
+        );
+
+        focusableElements?.forEach(el => {
+            const originalTabIndex = el.getAttribute("data-original-tabindex");
+            if (originalTabIndex) {
+                el.setAttribute("tabindex", originalTabIndex);
+                el.removeAttribute("data-original-tabindex");
+            }
+        });
+
+        const overflowFocusableElements = this.overflowContainer?.element.querySelectorAll<HTMLElement>(
+            '[data-original-tabindex]'
+        );
+
+        overflowFocusableElements?.forEach(el => {
+            const originalTabIndex = el.getAttribute("data-original-tabindex");
+            if (originalTabIndex) {
+                el.setAttribute("tabindex", originalTabIndex);
+                el.removeAttribute("data-original-tabindex");
+            }
+        });
+
+        this._isFocusPageLocked = false;
+    }
+
     async navigate(to: PageConstructor<T_STORE, T_CONFIG>, params: Map<string, string> = new Map()): Promise<void> {
         // const newHash = `${to}@${encodeParams(new Map([...params, ...this.getData()]))}`;
         // if (newHash === this.lastHash) return;
@@ -257,6 +307,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         await this._currentPage.load();
         this._currentPage.mount(this.pageContainer);
         this.pageId.set(to);
+        this.appDiv.element.setAttribute("data-page", to.name);
 
         // loader?.classList.add("none");
         // pages.style.removeProperty("visibility");
@@ -336,6 +387,14 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         await modal.load();
         this.updateModals();
         await modal.show();
+
+        // focus first focusable element in modal
+        const focusableElements = modal.element.querySelectorAll<HTMLElement>(
+            FOCUSABLE_ELEMENT_SELECTOR
+        );
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus();
+        }
     }
 
     async removeModal(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
@@ -353,6 +412,21 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         }
 
         this.updateModals();
+
+        if (this.modals.length > 0) {
+            const focusableElements = this.modals[this.modals.length - 1].element.querySelectorAll<HTMLElement>(
+                FOCUSABLE_ELEMENT_SELECTOR
+            );
+            if (focusableElements.length > 0) {
+                focusableElements[0].focus();
+            }
+        } else {
+            // focus current page
+            const focusableElements = this.getPageFocusableElements();
+            if (focusableElements && focusableElements.length > 0) {
+                focusableElements[0].focus();
+            }
+        }
     }
 
     removeAllModals(): void {
@@ -363,11 +437,29 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this.updateModals();
     }
 
+    private getPageFocusableElements() {
+        return this.currentPage?.element.querySelectorAll<HTMLElement>(
+            FOCUSABLE_ELEMENT_SELECTOR
+        );
+    }
+
+    private getOverflowFocusableElements() {
+        return this.overflowContainer?.element.querySelectorAll<HTMLElement>(
+            FOCUSABLE_ELEMENT_SELECTOR
+        );
+    }
+
     private updateModals(): void {
         if (this.modals.length > 0) {
             this.modalsContainer.element.style.display = "flex";
+            if (!this._isFocusPageLocked) {
+                this.saveAndLockPageFocusableElements();
+            }
         } else {
             this.modalsContainer.element.style.display = "none";
+            if (this._isFocusPageLocked) {
+                this.restorePageFocusableElements();
+            }
         }
     }
 }
