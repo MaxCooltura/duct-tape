@@ -221,7 +221,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
           }
         }),
       );
-    } else if (condition) {
+    } else if (condition === true) {
       if (value instanceof Value) {
         this.register(
           value.subscribe((val) => {

@@ -1,3 +1,4 @@
+import { set } from "animejs";
 import { App } from "./app";
 import { DOMNode, create } from "./dom";
 
@@ -25,5 +26,17 @@ export abstract class Page<T_STORE, T_CONFIG> extends DOMNode<"div"> {
 
     async unload(): Promise<void | Promise<void>> {
         return Promise.resolve();
+    }
+
+    setActiveElement(element: HTMLElement | DOMNode<any>) {
+        if (element instanceof DOMNode) {
+            setTimeout(() => {
+                element.element.focus();
+            }, 100);
+        } else if (element instanceof HTMLElement) {
+            setTimeout(() => {
+                element.focus();
+            }, 100);
+        }
     }
 }
