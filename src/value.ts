@@ -31,13 +31,15 @@ export abstract class Value<T> extends Disposable {
   abstract subscribe(callback: ListenerFn<T>, scope?: object): UnsubscribeFn;
 
   equal(
-    test: ((value: T | undefined) => boolean) | string | boolean | number,
+    test: ((value: T | undefined) => boolean) | string | string[] | boolean | number | number[],
     register?: Disposable,
   ): Value<boolean> {
     let transform: (value: T | undefined) => boolean;
 
     if (test instanceof Function) {
       transform = test as unknown as (value: T | undefined) => boolean;
+    } else if (Array.isArray(test)) {
+      transform = (v) => test.includes(v as never);
     } else {
       transform = (v) => v === test;
     }
@@ -52,13 +54,15 @@ export abstract class Value<T> extends Disposable {
   }
 
   notEqual(
-    test: (value: T | undefined) => boolean | string,
+    test: ((value: T | undefined) => boolean) | string | string[] | boolean | number | number[],
     register?: Disposable,
   ): Value<boolean> {
     let transform: (value: T | undefined) => boolean;
 
-    if (typeof test === 'string') {
+    if (typeof test === 'string' || typeof test === 'number' || typeof test === 'boolean') {
       transform = (v) => v !== test;
+    } else if (Array.isArray(test)) {
+      transform = (v) => !test.includes(v as never);
     } else {
       transform = (value) =>
         !(test as unknown as (value: T | undefined) => boolean)(value);
