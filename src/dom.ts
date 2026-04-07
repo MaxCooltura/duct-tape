@@ -40,9 +40,9 @@ export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
 
 export function create<T extends keyof HTMLElementTagNameMap>(
   selector: T,
-  register?: Disposable,
+  owner: Disposable | null,
 ): DOMNode<T> {
-  const dom = DOMNode.create<T>(selector, register);
+  const dom = DOMNode.create<T>(selector, owner);
 
   return dom;
 }
@@ -50,20 +50,21 @@ export function create<T extends keyof HTMLElementTagNameMap>(
 export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
   private _element: HTMLElementTagNameMap[T];
   private _events: Map<DisposeFn, DOMEventListener> = new Map();
-  private _register?: Disposable;
+  private _owner: Disposable | null = null;
+  private _isRawContent: boolean = false;
 
   static create<T extends keyof HTMLElementTagNameMap>(
     selector: T,
-    register?: Disposable,
+    owner: Disposable | null,
   ): DOMNode<T> {
-    const dom = new DOMNode<T>(selector, register);
+    const dom = new DOMNode<T>(selector, owner);
     return dom;
   }
 
-  protected constructor(selector: T, register?: Disposable) {
+  protected constructor(selector: T, owner: Disposable | null) {
     super();
 
-    this._register = register;
+    this._owner = owner;
 
     const match = selector.split(':');
     if (match.length === 1) {
@@ -79,8 +80,8 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
       throw new Error('Invalid selector');
     }
 
-    if (this._register) {
-      this._register.register(this);
+    if (this._owner) {
+      this._owner.register(this);
     }
   }
 
@@ -91,9 +92,9 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
 
     this._element.remove();
 
-    if (this._register) {
-      this._register.unregister(this);
-      this._register = undefined;
+    if (this._owner) {
+      this._owner.unregister(this);
+      this._owner = null;
     }
 
     super.dispose();
@@ -237,9 +238,13 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
   }
 
   class(
-    className: string | string[],
+    className: string | string[] | undefined,
     active: boolean | Value<boolean> = true,
   ): this {
+    if (className === undefined) {
+      return this;
+    }
+
     if (active instanceof Value) {
       this.register(
         active.subscribe((val) => {
@@ -273,6 +278,20 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
         }
       }
     }
+    return this;
+  }
+
+  empty(): this {
+    [...this._disposables].forEach(([key, dispose]) => {
+      if (key instanceof DOMNode) {
+        if (key._owner !== this) {
+          console.warn(`Cannot dispose child DOMNode that is not owned by this node.`, key);
+          return;
+        }
+        key.dispose();
+      }
+    });
+
     return this;
   }
 
@@ -366,23 +385,41 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     } else {
       this._element.innerText = String(content);
     }
+
+    this._isRawContent = true;
+
     return this;
   }
 
   html(content: string): this {
     this._element.innerHTML = content;
+    this._isRawContent = true;
     return this;
   }
 
   append(...children: DOMNode<any>[]): this {
+    if (this._isRawContent) {
+      console.warn(
+        'Appending child nodes to a DOMNode with raw content may lead to unexpected results.',
+        this,
+      );
+    }
+
     for (const child of children) {
-      this._element.appendChild(child.element);
+      child.mount(this);
     }
     return this;
   }
 
   mount(parent: Element | DOMNode<any>): this {
     if (parent instanceof DOMNode) {
+      if (parent._isRawContent) {
+        console.warn(
+          'Mounting a DOMNode to a parent with raw content may lead to unexpected results.',
+          this,
+          parent,
+        );
+      }
       parent._element.appendChild(this._element);
     } else {
       parent.appendChild(this._element);
@@ -394,7 +431,11 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this._element;
   }
 
-  get parent(): HTMLElement | null {
-    return this._element.parentElement;
+  get owner(): Disposable | null {
+    return this._owner;
+  }
+
+  get isRawContent(): boolean {
+    return this._isRawContent;
   }
 }

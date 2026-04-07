@@ -3,15 +3,10 @@
     "version": "1.0.0",
     "description": "",
     "license": "ISC",
-    "type": "module",
-    "module": "./build/index.js",
-    "types": "./build/index.d.ts",
     "contributors": [
         "Arkadiusz Wojtis"
     ],
     "scripts": {
-        "build": "tsc --project tsconfig.json",
-        "debug": "webpack serve --config webpack.debug.config.js",
         "format": "prettier --write ./src",
         "format:check": "prettier --check ./src",
         "test": "jest"

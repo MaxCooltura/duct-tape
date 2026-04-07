@@ -32,6 +32,11 @@ export class Modal<T_STORE, T_CONFIG> extends DOMNode<"div"> {
         }
     }
 
+    override dispose(): void {
+        this._app.removeModal(this);
+        super.dispose();
+    }
+
     async load() {
         if (this._options?.onAfterLoad) {
             this._options.onAfterLoad(this);

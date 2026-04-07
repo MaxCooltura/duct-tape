@@ -20,7 +20,7 @@ export function createDisposeFn(fn: DisposeFn): DisposeFn {
 
 export abstract class Disposable implements IDisposable {
   protected _disposed: boolean;
-  private _disposables: Map<object, DisposeFn> = new Map();
+  protected _disposables: Map<object, DisposeFn> = new Map();
 
   protected constructor() {
     this._disposed = false;
@@ -85,11 +85,11 @@ export abstract class Disposable implements IDisposable {
 
   unregister<
     T extends
-      | IDisposable
-      | IDestroyable
-      | IRemovable
-      | DisposeFn
-      | EventListenerOrEventListenerObject,
+    | IDisposable
+    | IDestroyable
+    | IRemovable
+    | DisposeFn
+    | EventListenerOrEventListenerObject,
   >(o: T): void {
     if (this._disposables.has(o)) {
       this._disposables.delete(o);
