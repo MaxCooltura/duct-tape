@@ -203,7 +203,14 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
-  style(name: string, value: string | Value<string>, condition: boolean | Value<boolean> = true): this {
+  style(name: string): string | undefined;
+  style(name: string, value: string | Value<string>): this;
+  style(name: string, value: string | Value<string>, condition: boolean | Value<boolean>): this;
+  style(name: string, value?: string | Value<string>, condition?: boolean | Value<boolean>): this | string | undefined {
+    if (value === undefined) {
+      return this._element.style.getPropertyValue(name);
+    }
+
     if (condition instanceof Value) {
       this.register(
         condition.subscribe((cond) => {
@@ -222,7 +229,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
           }
         }),
       );
-    } else if (condition === true) {
+    } else if (condition === true || condition === undefined) {
       if (value instanceof Value) {
         this.register(
           value.subscribe((val) => {
@@ -232,6 +239,8 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
       } else {
         this._element.style.setProperty(name, value);
       }
+    } else {
+      this._element.style.removeProperty(name);
     }
 
     return this;
