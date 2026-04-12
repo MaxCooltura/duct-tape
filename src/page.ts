@@ -1,4 +1,3 @@
-import { set } from "animejs";
 import { App } from "./app";
 import { DOMNode, create } from "./dom";
 
@@ -13,7 +12,7 @@ export abstract class Page<T_STORE, T_CONFIG> extends DOMNode<"div"> {
 
     constructor(app: App<T_STORE, T_CONFIG>, store: T_STORE, config: T_CONFIG
     ) {
-        super("div");
+        super("div", null);
 
         this._app = app;
         this._store = store;
