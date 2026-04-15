@@ -405,6 +405,19 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
+  visible(isVisible: boolean | Value<boolean>): this {
+    if (isVisible instanceof Value) {
+      this.register(
+        isVisible.subscribe((visible) => {
+          this._element.style.display = visible ? '' : 'none';
+        }),
+      );
+    } else {
+      this._element.style.display = isVisible ? '' : 'none';
+    }
+    return this;
+  }
+
   append(...children: DOMNode<any>[]): this {
     for (const child of children) {
       child.mount(this);
