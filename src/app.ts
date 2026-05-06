@@ -89,21 +89,21 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this._options = options;
         this._parent = parent;
 
-        this.appDiv = this.register(create("div").class(options.appClassName ?? []).mount(this._parent));
-        this.appContainer = this.register(create("div").class(options.appContainerClassName ?? []).mount(this.appDiv));
+        this.appDiv = this.register(create("div", this).class(options.appClassName ?? []).mount(this._parent));
+        this.appContainer = this.register(create("div", this).class(options.appContainerClassName ?? []).mount(this.appDiv));
 
         if (options.backgroundContainerEnabled === true) {
-            this.backgroundContainer = this.register(create("div").class(options.backgroundContainerClassName ?? []).mount(this.appContainer));
+            this.backgroundContainer = this.register(create("div", this).class(options.backgroundContainerClassName ?? []).mount(this.appContainer));
         }
 
-        this.pageContainer = this.register(create("div").class(options.pageContainerClassName ?? []).mount(this.appContainer));
+        this.pageContainer = this.register(create("div", this).class(options.pageContainerClassName ?? []).mount(this.appContainer));
 
 
         if (options.overflowContainerEnabled === true) {
-            this.overflowContainer = this.register(create("div").class(options.overflowContainerClassName ?? []).mount(this.appContainer));
+            this.overflowContainer = this.register(create("div", this).class(options.overflowContainerClassName ?? []).mount(this.appContainer));
         }
 
-        this.modalsContainer = this.register(create("div").class(options.modalContainerClassName ?? []).style("display", "none").mount(this.appContainer));
+        this.modalsContainer = this.register(create("div", this).class(options.modalContainerClassName ?? []).style("display", "none").mount(this.appContainer));
     }
 
     override dispose(): void {
