@@ -25,6 +25,10 @@ import { Value } from './value';
 //     )
 //     .mount(document.body);
 
+const SVG_TAGS = new Set([
+  "svg", "circle", "rect", "path", "line", "ellipse", "polygon", "polyline", "g", "defs", "symbol", "use", "text", "tspan"
+]);
+
 export interface DOMEventListener {
   eventType: string;
   listener: EventListenerOrEventListenerObject;
@@ -34,11 +38,11 @@ export type DOMNodeEventMap = {
   changeParent: Element;
 };
 
-export interface DOMNodeConstructor<T extends keyof HTMLElementTagNameMap> {
+export interface DOMNodeConstructor<T extends keyof (HTMLElementTagNameMap & SVGElementTagNameMap)> {
   new(selector: T): DOMNode<T>;
 }
 
-export function create<T extends keyof HTMLElementTagNameMap>(
+export function create<T extends keyof (HTMLElementTagNameMap & SVGElementTagNameMap)>(
   selector: T,
   owner: Disposable | null,
 ): DOMNode<T> {
@@ -47,12 +51,14 @@ export function create<T extends keyof HTMLElementTagNameMap>(
   return dom;
 }
 
-export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
-  private _element: HTMLElementTagNameMap[T];
+type DOMElementTagNameMap = HTMLElementTagNameMap & SVGElementTagNameMap;
+
+export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
+  private _element: DOMElementTagNameMap[T] = null as any;
   private _events: Map<DisposeFn, DOMEventListener> = new Map();
   private _owner: Disposable | null = null;
 
-  static create<T extends keyof HTMLElementTagNameMap>(
+  static create<T extends keyof DOMElementTagNameMap>(
     selector: T,
     owner: Disposable | null,
   ): DOMNode<T> {
@@ -65,23 +71,38 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
 
     this._owner = owner;
 
-    const match = selector.split(':');
-    if (match.length === 1) {
-      this._element = document.createElement(selector);
-    } else if (match.length === 2) {
-      const namespace = match[0];
-      const tagName = match[1];
-      this._element = document.createElementNS(
-        namespace,
-        tagName,
-      ) as HTMLElementTagNameMap[T];
+    if (SVG_TAGS.has(selector)) {
+      this._element = document.createElementNS('http://www.w3.org/2000/svg', selector) as unknown as DOMElementTagNameMap[T];
     } else {
-      throw new Error('Invalid selector');
+      this._element = document.createElement(selector) as DOMElementTagNameMap[T];
     }
 
     if (this._owner) {
       this._owner.register(this);
     }
+
+    // const match = selector.split(':');
+    // if (match.length === 1) {
+    //   this._element = document.createElement(selector);
+    // } else if (match.length === 2) {
+    //   const namespace = match[0];
+    //   const tagName = match[1];
+
+    //   if (namespace === 'svg') {
+    //     this._element = document.createElementNS('http://www.w3.org/2000/svg', tagName) as unknown as SVGElement;
+    //   } if (namespace === 'html') {
+    //     this._element = document.createElementNS(
+    //       'http://www.w3.org/1999/xhtml',
+    //       tagName,
+    //     ) as HTMLElement;
+    //   } else {
+    //     throw new Error('Invalid selector');
+    //   }
+
+    //   if (this._owner) {
+    //     this._owner.register(this);
+    //   }
+    // }
   }
 
   override dispose(): void {
@@ -389,11 +410,19 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     if (content instanceof Value) {
       this.register(
         content.subscribe((val) => {
-          this._element.innerText = String(val);
+          if (this.element instanceof HTMLElement) {
+            if (val === null || val === undefined) {
+              (this._element as HTMLElement).innerText = '';
+            } else {
+              (this._element as HTMLElement).innerText = String(val);
+            }
+          }
         }),
       );
     } else {
-      this._element.innerText = String(content);
+      if (this.element instanceof HTMLElement) {
+        (this._element as HTMLElement).innerText = String(content);
+      }
     }
 
     return this;
@@ -434,7 +463,7 @@ export class DOMNode<T extends keyof HTMLElementTagNameMap> extends Disposable {
     return this;
   }
 
-  get element(): HTMLElementTagNameMap[T] {
+  get element(): DOMElementTagNameMap[T] {
     return this._element;
   }
 
