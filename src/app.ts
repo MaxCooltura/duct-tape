@@ -69,6 +69,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     private _currentPage?: Page<T_STORE, T_CONFIG>;
     public readonly pageId: ValueStore<PageConstructor<T_STORE, T_CONFIG> | null> = new ValueStoreRaw<PageConstructor<T_STORE, T_CONFIG> | null>(null);
     private _isFocusPageLocked: boolean = false;
+    public readonly isFullscreen: ValueStore<boolean> = new ValueStoreRaw<boolean>(false);
 
     static create<T_STORE, T_CONFIG>(
         parent: HTMLElement,
@@ -104,6 +105,11 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         }
 
         this.modalsContainer = this.register(create("div", this).class(options.modalContainerClassName ?? []).style("display", "none").mount(this.appContainer));
+
+        document.addEventListener("fullscreenchange", () => {
+            const isFullscreen = !!document.fullscreenElement;
+            this.isFullscreen.set(isFullscreen);
+        });
     }
 
     override dispose(): void {
@@ -133,19 +139,17 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     }
 
     exitFullscreen(): void {
-        document.exitFullscreen();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
     }
 
     toggleFullscreen(): void {
-        if (this.isFullscreen) {
+        if (document.fullscreenElement) {
             this.exitFullscreen();
         } else {
             this.fullscreen();
         }
-    }
-
-    get isFullscreen(): boolean {
-        return !!document.fullscreenElement;
     }
 
     get parent(): HTMLElement {

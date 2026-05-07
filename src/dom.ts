@@ -14,12 +14,12 @@ import { Value } from './value';
 
 // export type DOMChild = Node | string | ((owner: Element) => Node);
 
-// create("div")
+// create("div", this)
 //     .attr("id", "app")
 //     .class("container")
 //     .append(
-//         create("h1").text("Welcome to My App"),
-//         create("button")
+//         create("h1", this).text("Welcome to My App"),
+//         create("button", this)
 //             .text("Click Me")
 //             .on("click", () => alert("Button Clicked!"))
 //     )
@@ -434,7 +434,7 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this;
   }
 
-  visible(isVisible: boolean | Value<boolean>): this {
+  display(isVisible: boolean | Value<boolean>): this {
     if (isVisible instanceof Value) {
       this.register(
         isVisible.subscribe((visible) => {
@@ -443,6 +443,19 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
       );
     } else {
       this._element.style.display = isVisible ? '' : 'none';
+    }
+    return this;
+  }
+
+  visibility(isVisible: boolean | Value<boolean>): this {
+    if (isVisible instanceof Value) {
+      this.register(
+        isVisible.subscribe((visible) => {
+          this._element.style.visibility = visible ? 'visible' : 'hidden';
+        }),
+      );
+    } else {
+      this._element.style.visibility = isVisible ? 'visible' : 'hidden';
     }
     return this;
   }
