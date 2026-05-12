@@ -1,3 +1,4 @@
+import { set } from 'animejs';
 import { createDisposeFn, Disposable, DisposeFn } from './disposable';
 import { Value } from './value';
 
@@ -472,6 +473,15 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
       parent._element.appendChild(this._element);
     } else {
       parent.appendChild(this._element);
+    }
+    return this;
+  }
+
+  focus(options?: FocusOptions): this {
+    if (this._element instanceof HTMLElement || this._element instanceof SVGElement) {
+      setTimeout(() => {
+        this._element.focus(options);
+      }, 100);
     }
     return this;
   }
