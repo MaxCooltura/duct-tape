@@ -45,7 +45,12 @@ export interface AppOptions<T_STORE> {
     modalContainerClassName?: string | string[];
 }
 
-const FOCUSABLE_ELEMENT_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), input[type="radio"]:not([disabled]), input[type="checkbox"]:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+export const FOCUSABLE_ELEMENT_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), input[type="radio"]:not([disabled]), input[type="checkbox"]:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+interface WaitingModal {
+    modal: Modal<any, any>;
+    resolve: () => void;
+}
 
 export class App<T_STORE, T_CONFIG> extends Disposable {
     public readonly appDiv: DOMNode<"div">;
@@ -63,7 +68,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     private readonly _parent: HTMLElement;
     public readonly store: T_STORE;
     public readonly config: T_CONFIG;
-
+    private _waitingModals: WaitingModal[] = [];
     private backgroundPages: Page<T_STORE, T_CONFIG>[] = [];
     private overflowPages: Page<T_STORE, T_CONFIG>[] = [];
     private _currentPage?: Page<T_STORE, T_CONFIG>;
@@ -275,6 +280,42 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this._isFocusPageLocked = false;
     }
 
+    savePageFocus(): void {
+        const activeElement = document.activeElement as HTMLElement;
+        this.removeAllDataLastFocusedAttributes(this.currentPage?.element as HTMLElement);
+        this._currentPage?.element.contains(activeElement) && activeElement.setAttribute("data-last-focused", "true");
+    }
+
+    restorePageFocus(): void {
+        const lastFocused = this.currentPage?.element.querySelector<HTMLElement>("[data-last-focused='true']");
+        if (lastFocused) {
+            lastFocused.focus();
+            this.removeAllDataLastFocusedAttributes(this.currentPage?.element as HTMLElement);
+        }
+    }
+
+    saveModalFocus(): void {
+        const activeElement = document.activeElement as HTMLElement;
+        const topModal = this.modals[this.modals.length - 1];
+        this.removeAllDataLastFocusedAttributes(topModal?.element as HTMLElement);
+        topModal?.element.contains(activeElement) && activeElement.setAttribute("data-last-focused", "true");
+    }
+
+    restoreModalFocus(): void {
+        const topModal = this.modals[this.modals.length - 1];
+        const lastFocused = topModal?.element.querySelector<HTMLElement>("[data-last-focused='true']");
+        if (lastFocused) {
+            lastFocused.focus();
+            this.removeAllDataLastFocusedAttributes(topModal?.element as HTMLElement);
+        }
+    }
+
+    removeAllDataLastFocusedAttributes(elem: HTMLElement): void {
+        elem.querySelectorAll<HTMLElement>("[data-last-focused='true']").forEach(el => {
+            el.removeAttribute("data-last-focused");
+        });
+    }
+
     async navigate(to: PageConstructor<T_STORE, T_CONFIG>, params: Map<string, string> = new Map()): Promise<void> {
         // const newHash = `${to}@${encodeParams(new Map([...params, ...this.getData()]))}`;
         // if (newHash === this.lastHash) return;
@@ -321,31 +362,14 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this.pageId.set(to);
         this.appDiv.element.setAttribute("data-page", to.name);
 
-        // loader?.classList.add("none");
-        // pages.style.removeProperty("visibility");
-
-        // if (location.hash.slice(1) !== newHash) {
-        //     location.hash = newHash;
-        // }
+        if (this._waitingModals.length > 0) {
+            for (const { modal, resolve } of this._waitingModals) {
+                await this.addModal(modal);
+                resolve();
+            }
+            this._waitingModals = [];
+        }
     }
-
-    // TODO: zachowanie specyficzne, przenieść do rozszerzenia
-    // navigateFromHash(): void {
-    //     const path = location.hash.slice(1);
-    //     const params = path.split("@");
-    //     const to = params[0] ?? "";
-    //     const data = params[1] ?? "";
-
-    //     this.navigate(to, decodeParams(data));
-    // }
-
-    // getData(): Map<string, string> {
-    //     const path = location.hash.slice(1);
-    //     const params = path.split("@");
-    //     const data = params[1] ?? "";
-
-    //     return decodeParams(data);
-    // }
 
     runViewportObserver(): void {
         const appHeight = () => {
@@ -385,28 +409,45 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         }
     }
 
-    async addModal(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
+    addModal(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
         if (this.modals.includes(modal)) {
-            return;
+            return Promise.resolve();
         }
 
-        if (this.modals.length > 0) {
-            this.modals[this.modals.length - 1].element.style.display = "none";
+        // if there is no current page, we should wait until the page is loaded to show the modal
+        if (this.currentPage === undefined) {
+            return new Promise((resolve) => {
+                this._waitingModals.push({ modal, resolve });
+            });
         }
 
-        this.modals.push(modal);
-        modal.mount(this.modalsContainer);
-        await modal.load();
-        this.updateModals();
-        await modal.show();
+        return new Promise(async (resolve) => {
+            if (this.modals.length === 0) {
+                this.savePageFocus();
+            } else {
+                this.saveModalFocus();
+            }
 
-        // focus first focusable element in modal
-        const focusableElements = modal.element.querySelectorAll<HTMLElement>(
-            FOCUSABLE_ELEMENT_SELECTOR
-        );
-        if (focusableElements.length > 0) {
-            focusableElements[0].focus();
-        }
+            if (this.modals.length > 0) {
+                this.modals[this.modals.length - 1].element.style.display = "none";
+            }
+
+            this.modals.push(modal);
+            modal.mount(this.modalsContainer);
+            await modal.load();
+            this.updateModals();
+            await modal.show();
+
+            // focus first focusable element in modal
+            const focusableElements = modal.element.querySelectorAll<HTMLElement>(
+                FOCUSABLE_ELEMENT_SELECTOR
+            );
+            if (focusableElements.length > 0) {
+                focusableElements[0].focus();
+            }
+
+            resolve();
+        });
     }
 
     async removeModal(modal: Modal<T_STORE, T_CONFIG>): Promise<void> {
@@ -425,19 +466,24 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
 
         this.updateModals();
 
+        // if (this.modals.length > 0) {
+        //     const focusableElements = this.modals[this.modals.length - 1].element.querySelectorAll<HTMLElement>(
+        //         FOCUSABLE_ELEMENT_SELECTOR
+        //     );
+        //     if (focusableElements.length > 0) {
+        //         focusableElements[0].focus();
+        //     }
+        // } else {
+        //     // focus current page
+        //     const focusableElements = this.getPageFocusableElements();
+        //     if (focusableElements && focusableElements.length > 0) {
+        //         focusableElements[0].focus();
+        //     }
+        // }
         if (this.modals.length > 0) {
-            const focusableElements = this.modals[this.modals.length - 1].element.querySelectorAll<HTMLElement>(
-                FOCUSABLE_ELEMENT_SELECTOR
-            );
-            if (focusableElements.length > 0) {
-                focusableElements[0].focus();
-            }
+            this.restoreModalFocus();
         } else {
-            // focus current page
-            const focusableElements = this.getPageFocusableElements();
-            if (focusableElements && focusableElements.length > 0) {
-                focusableElements[0].focus();
-            }
+            this.restorePageFocus();
         }
     }
 

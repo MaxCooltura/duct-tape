@@ -1,5 +1,5 @@
 import { mergeDeep } from './common';
-import { Disposable } from './disposable';
+import { Disposable, RegisterFn } from './disposable';
 import { toBoolean } from './to';
 import { UnsubscribeFn } from './unsubscribe';
 
@@ -22,8 +22,13 @@ export type ValueTypes =
 
 export type ValueFormatterFn<T> = (value: T) => string;
 
-export function createValue<T>(value: T, register?: Disposable): ValueStore<T> {
-  return new ValueStore<T>(value, register);
+export interface SubscribeOptions {
+  scope?: object;
+  owner?: Disposable;
+}
+
+export function createValue<T>(value: T, owner?: Disposable): ValueStore<T> {
+  return new ValueStore<T>(value, owner);
 }
 
 export abstract class Value<T> extends Disposable {
@@ -173,18 +178,18 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
   protected value: T;
   private initValue: T;
   protected prev: T | undefined;
-  private _register?: Disposable;
+  private _owner?: Disposable;
 
-  constructor(value: T, register?: Disposable) {
+  constructor(value: T, owner?: Disposable) {
     super();
 
-    this._register = register;
+    this._owner = owner;
     this.value = value;
     this.initValue = value;
     this.prev = undefined;
 
-    if (register) {
-      register.register(this);
+    if (owner) {
+      owner.register(this);
     }
   }
 
@@ -193,15 +198,18 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
 
     this.listeners.splice(0, this.listeners.length);
 
-    if (this._register) {
-      this._register.unregister(this);
-      this._register = undefined;
+    if (this._owner) {
+      this._owner.unregister(this);
+      this._owner = undefined;
     }
 
     super.dispose();
   }
 
-  subscribe(callback: ListenerFn<T>, scope: object = this): UnsubscribeFn {
+  subscribe(callback: ListenerFn<T>, options?: SubscribeOptions): UnsubscribeFn {
+    const scope = options?.scope || this;
+    const owner = options?.owner;
+
     const handle: ListenerHandle<T> = {
       callback,
       scope,
@@ -211,9 +219,15 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
 
     this.deliveryValueToSubscriber(handle, this.value, this.prev);
 
-    return () => {
+    const unsubscribe = () => {
       this.listeners.splice(this.listeners.indexOf(handle), 1);
     };
+
+    if (owner) {
+      owner.register(unsubscribe);
+    }
+
+    return unsubscribe;
   }
 
   set(value: T): void {

@@ -18,6 +18,9 @@ export function createDisposeFn(fn: DisposeFn): DisposeFn {
   return fn;
 }
 
+export type RegisterFn = <T extends IDisposable | IDestroyable | IRemovable | DisposeFn>(o: T) => T;
+export type UnregisterFn = <T extends IDisposable | IDestroyable | IRemovable | DisposeFn | EventListenerOrEventListenerObject>(o: T) => void;
+
 export abstract class Disposable implements IDisposable {
   protected _disposed: boolean;
   protected _disposables: Map<object, DisposeFn> = new Map();

@@ -1,4 +1,4 @@
-import { set } from 'animejs';
+import { FOCUSABLE_ELEMENT_SELECTOR } from './app';
 import { createDisposeFn, Disposable, DisposeFn } from './disposable';
 import { Value } from './value';
 
@@ -482,6 +482,20 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
       setTimeout(() => {
         this._element.focus(options);
       }, 100);
+    }
+    return this;
+  }
+
+  focusFirstElement(options?: FocusOptions): this {
+    if (this._element instanceof HTMLElement) {
+      const firstFocusable = this._element.querySelector<HTMLElement>(
+        FOCUSABLE_ELEMENT_SELECTOR
+      );
+      if (firstFocusable) {
+        setTimeout(() => {
+          firstFocusable.focus(options);
+        }, 100);
+      }
     }
     return this;
   }
