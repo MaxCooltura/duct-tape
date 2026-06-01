@@ -217,7 +217,9 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
 
     this.listeners.push(handle);
 
-    this.deliveryValueToSubscriber(handle, this.value, this.prev);
+    setTimeout(() => {
+      this.deliveryValueToSubscriber(handle, this.value, this.prev);
+    });
 
     const unsubscribe = () => {
       this.listeners.splice(this.listeners.indexOf(handle), 1);
@@ -268,9 +270,11 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
   }
 
   protected deliveryValue(value: T, prev: T | undefined): void {
-    for (const handle of this.listeners) {
-      this.deliveryValueToSubscriber(handle, value, prev);
-    }
+    setTimeout(() => {
+      for (const handle of this.listeners) {
+        this.deliveryValueToSubscriber(handle, value, prev);
+      }
+    });
   }
 
   private deliveryValueToSubscriber(
@@ -341,7 +345,9 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
 
     this.listeners.push(handle);
 
-    this.deliverValueToSubscriber(handle, this.value, this.prev);
+    setTimeout(() => {
+      this.deliverValueToSubscriber(handle, this.value, this.prev);
+    });
 
     return () => {
       this.listeners.splice(this.listeners.indexOf(handle), 1);
@@ -361,9 +367,11 @@ export class ValueObserver<K, T extends ValueTypes> extends Value<K> {
   }
 
   protected deliverValue(value: K, prev: K | undefined): void {
-    for (const handle of this.listeners) {
-      this.deliverValueToSubscriber(handle, value, prev);
-    }
+    setTimeout(() => {
+      for (const handle of this.listeners) {
+        this.deliverValueToSubscriber(handle, value, prev);
+      }
+    });
   }
 
   private deliverValueToSubscriber(
@@ -441,7 +449,9 @@ export class ValueLogicObserver<
 
     this.listeners.push(handle);
 
-    this.deliverValueToSubscriber(handle, this.value, this.prev);
+    setTimeout(() => {
+      this.deliverValueToSubscriber(handle, this.value, this.prev);
+    });
 
     return () => {
       this.listeners.splice(this.listeners.indexOf(handle), 1);
@@ -461,9 +471,11 @@ export class ValueLogicObserver<
   }
 
   protected deliverValue(value: boolean, prev: boolean | undefined): void {
-    for (const handle of this.listeners) {
-      this.deliverValueToSubscriber(handle, value, prev);
-    }
+    setTimeout(() => {
+      for (const handle of this.listeners) {
+        this.deliverValueToSubscriber(handle, value, prev);
+      }
+    });
   }
 
   private deliverValueToSubscriber(
