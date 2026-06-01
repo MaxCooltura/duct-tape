@@ -477,6 +477,16 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this;
   }
 
+  insertBefore(referenceNode: Element | DOMNode<any>): this {
+    const refElement = referenceNode instanceof DOMNode ? referenceNode._element : referenceNode;
+    if (refElement.parentElement) {
+      refElement.parentElement.insertBefore(this._element, refElement);
+    } else {
+      console.warn('Reference node has no parent. Cannot insert before it.', referenceNode);
+    }
+    return this;
+  }
+
   focus(options?: FocusOptions): this {
     if (this._element instanceof HTMLElement || this._element instanceof SVGElement) {
       setTimeout(() => {
