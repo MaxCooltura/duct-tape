@@ -468,11 +468,19 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this;
   }
 
-  mount(parent: Element | DOMNode<any>): this {
+  mount(parent: Element | DOMNode<any>, options?: { first?: boolean }): this {
     if (parent instanceof DOMNode) {
-      parent._element.appendChild(this._element);
+      if (options?.first) {
+        parent._element.insertBefore(this._element, parent._element.firstChild);
+      } else {
+        parent._element.appendChild(this._element);
+      }
     } else {
-      parent.appendChild(this._element);
+      if (options?.first) {
+        parent.insertBefore(this._element, parent.firstChild);
+      } else {
+        parent.appendChild(this._element);
+      }
     }
     return this;
   }
