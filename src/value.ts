@@ -33,7 +33,7 @@ export function createValue<T>(value: T, owner?: Disposable): ValueStore<T> {
 
 export abstract class Value<T> extends Disposable {
   abstract get(): T;
-  abstract subscribe(callback: ListenerFn<T>, scope?: object): UnsubscribeFn;
+  abstract subscribe(callback: ListenerFn<T>, options?: SubscribeOptions): UnsubscribeFn;
 
   equal(
     test: ((value: T | undefined) => boolean) | string | string[] | boolean | number | number[],
