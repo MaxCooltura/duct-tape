@@ -16,7 +16,7 @@ export class Modal<T_STORE, T_CONFIG> extends DOMNode<"div"> {
     protected _options: ModalOptions<T_STORE, T_CONFIG>;
 
     constructor(app: App<T_STORE, T_CONFIG>, store: T_STORE, config: T_CONFIG, options: ModalOptions<T_STORE, T_CONFIG>) {
-        super("div", null);
+        super(null, "div");
 
         this._app = app;
         this._store = store;

@@ -12,7 +12,7 @@ export abstract class Page<T_STORE, T_CONFIG> extends DOMNode<"div"> {
 
     constructor(app: App<T_STORE, T_CONFIG>, store: T_STORE, config: T_CONFIG
     ) {
-        super("div", null);
+        super(null, "div");
 
         this._app = app;
         this._store = store;
