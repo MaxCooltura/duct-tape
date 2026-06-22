@@ -24,6 +24,20 @@ export type ValueFormatterFn<T> = (value: T) => string;
 
 export const ManualDispose = Symbol('ManualDispose');
 
+function arrayEquals<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function createValue<T>(value: T, owner?: Disposable): ValueStore<T> {
   return new ValueStore<T>(value, owner);
 }
@@ -221,20 +235,17 @@ export class ValueStore<T extends ValueTypes> extends Value<T> {
   set(value: T): void {
     this.prev = this.get();
 
-    if (
-      this.value !== value
-    ) {
-      if (Array.isArray(this.value)) {
-        this.value = [...(value as unknown as any[])] as T;
-      } else if (typeof this.value === 'object') {
-        this.value = mergeDeep(
-          this.value as Record<string, unknown>,
-          value as Record<string, unknown>,
-        ) as T;
-      } else {
-        this.value = value;
-      }
-
+    if (Array.isArray(this.value) && Array.isArray(value) && !arrayEquals(this.value, value)) {
+      this.value = [...(value as unknown as any[])] as T;
+      this.deliveryValue(this.value, this.prev);
+    } else if (typeof this.value === 'object') {
+      this.value = mergeDeep(
+        this.value as Record<string, unknown>,
+        value as Record<string, unknown>,
+      ) as T;
+      this.deliveryValue(this.value, this.prev);
+    } else if (this.value !== value) {
+      this.value = value;
       this.deliveryValue(this.value, this.prev);
     }
   }
