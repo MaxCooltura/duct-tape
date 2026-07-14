@@ -437,6 +437,7 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
 
   display(isVisible: boolean | Value<boolean>): this {
     if (isVisible instanceof Value) {
+      this._element.style.display = isVisible.get() ? '' : 'none';
       this.register(
         isVisible.subscribe((visible) => {
           this._element.style.display = visible ? '' : 'none';
