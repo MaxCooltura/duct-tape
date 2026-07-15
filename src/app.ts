@@ -95,27 +95,27 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         this._options = options;
         this._parent = parent;
 
-        this.appDiv = create("div", this).class(options.appClassName ?? [])
+        this.appDiv = create(this, "div").class(options.appClassName ?? [])
             .mount(this._parent);
-        this.appContainer = create("div", this).class(options.appContainerClassName ?? [])
+        this.appContainer = create(this, "div").class(options.appContainerClassName ?? [])
             .mount(this.appDiv);
 
         if (options.backgroundContainerEnabled === true) {
-            this.backgroundContainer = create("div", this)
+            this.backgroundContainer = create(this, "div")
                 .class(options.backgroundContainerClassName ?? [])
                 .mount(this.appContainer);
         }
 
-        this.pageContainer = create("div", this).class(options.pageContainerClassName ?? [])
+        this.pageContainer = create(this, "div").class(options.pageContainerClassName ?? [])
             .mount(this.appContainer);
 
 
         if (options.overflowContainerEnabled === true) {
-            this.overflowContainer = create("div", this).class(options.overflowContainerClassName ?? [])
+            this.overflowContainer = create(this, "div").class(options.overflowContainerClassName ?? [])
                 .mount(this.appContainer);
         }
 
-        this.modalsContainer = create("div", this).class(options.modalContainerClassName ?? [])
+        this.modalsContainer = create(this, "div").class(options.modalContainerClassName ?? [])
             .style("display", "none")
             .mount(this.appContainer);
 
