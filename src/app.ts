@@ -446,6 +446,8 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
                 focusableElements[0].focus();
             }
 
+            this.pageContainer.attr("aria-hidden", "true");
+
             resolve();
         });
     }
@@ -481,6 +483,7 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         //     }
         // }
         if (this.modals.length > 0) {
+            this.pageContainer.attr("aria-hidden", "false");
             this.restoreModalFocus();
         } else {
             this.restorePageFocus();
