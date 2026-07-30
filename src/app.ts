@@ -126,6 +126,14 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
     }
 
     override dispose(): void {
+        for (const [, service] of this._services) {
+            try {
+                service.dispose();
+            } catch (error) {
+                log.error(`Failed to dispose service:`, error);
+            }
+        }
+
         this.removeAllModals();
 
         if (this.backgroundPages.length > 0) {
