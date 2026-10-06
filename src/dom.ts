@@ -493,6 +493,10 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this;
   }
 
+  hasChildNodes(): boolean {
+    return this._element.hasChildNodes();
+  }
+
   get element(): DOMElementTagNameMap[T] {
     return this._element;
   }
