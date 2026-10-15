@@ -490,10 +490,11 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         //         focusableElements[0].focus();
         //     }
         // }
+
         if (this.modals.length > 0) {
-            this.pageContainer.attr("aria-hidden", "false");
             this.restoreModalFocus();
         } else {
+            this.pageContainer.attr("aria-hidden", "false");
             this.restorePageFocus();
         }
     }
@@ -503,7 +504,11 @@ export class App<T_STORE, T_CONFIG> extends Disposable {
         while ((modal = this.modals.pop())) {
             modal.dispose();
         }
+
         this.updateModals();
+
+        this.pageContainer.attr("aria-hidden", "false");
+        this.restorePageFocus();
     }
 
     private getPageFocusableElements() {

@@ -505,3 +505,61 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this._owner;
   }
 }
+
+export function createText(owner: Disposable | null = null, text: string): TextNode {
+  return TextNode.create(owner, text);
+}
+
+export class TextNode extends Disposable {
+  private _owner: Disposable | null = null;
+  private _textNode: Text;
+
+  static create(owner: Disposable | null = null, text: string): TextNode {
+    return new TextNode(owner, text);
+  }
+
+  constructor(owner: Disposable | null = null, text: string) {
+    super();
+
+    this._owner = owner;
+
+    this._textNode = document.createTextNode(text);
+
+    if (this._owner) {
+      this._owner.register(this);
+    }
+  }
+
+  override dispose(): void {
+    if (this._disposed) return;
+
+    this._textNode.remove();
+
+    if (this._owner) {
+      this._owner.unregister(this);
+    }
+
+    super.dispose();
+  }
+
+  get element(): Text {
+    return this._textNode;
+  }
+
+  mount(parent: Element | DOMNode<any>, options?: { first?: boolean }): this {
+    if (parent instanceof DOMNode) {
+      if (options?.first) {
+        parent.element.insertBefore(this._textNode, parent.element.firstChild);
+      } else {
+        parent.element.appendChild(this._textNode);
+      }
+    } else {
+      if (options?.first) {
+        parent.insertBefore(this._textNode, parent.firstChild);
+      } else {
+        parent.appendChild(this._textNode);
+      }
+    }
+    return this;
+  }
+}
