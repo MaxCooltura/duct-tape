@@ -293,6 +293,10 @@ export class DOMNode<T extends keyof DOMElementTagNameMap> extends Disposable {
     return this;
   }
 
+  hasClass(className: string): boolean {
+    return this._element.classList.contains(className);
+  }
+
   empty(): this {
     [...this._disposables].forEach(([key, dispose]) => {
       if (key instanceof DOMNode) {
